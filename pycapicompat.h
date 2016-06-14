@@ -43,31 +43,26 @@ extern "C" {
 #endif
 
 // TODO(Daetalus)
-#if 0
-#ifndef IMPLEMENTATION_SUPPORTS_EXTENDED_C_API
-#define PyErr_GetExcInfoType() PyThreadState_GET()->exc_type
-#endif
-#ifdef PYSTON_VERSION
-  foo = PyErr_GetExcInfoType(); // a new API function
-#else
-  foo = PyThreadState_GET()->exc_type; // direct field access
-#endif
-#endif
+#ifdef IMPLEMENTATION_SUPPORTS_EXTENDED_C_API
 
+#else
+#define PyErr_GetExcInfoType() PyThreadState_GET()->exc_type;
 // info about free variables
-// TODO(Daetalus) verify and fill more
-#ifdef CPYTHON_VERSION
-// TODO(Daetalus) see how Cython does this check
-#elif defined(PYSTON_VERSION)
-void PyCode_HasFreeVars(BoxedCode* code) {
-  return code->source->getScopeInfo()->takesClosure();
+#define PyCode_HasFreeVars(co) PyCode_GetNumFree((PyCodeObject *)co) > 0
+#define PyFrame_SetLineNumber(py_frame, py_line); py_frame->f_lineno = py_line;
+#define PyFrame_SetBack(frame, back) frame->f_back = back;
+#define PyObject* PyErr_GetExcInfoType() PyThreadState_GET()->exc_type;
+
+extern "C" PyObject* PyErr_GetExcInfoValue() noexcept {
+    ExcInfo exc = getFrameExcInfo();
+    return exc->value;
 }
-#else
-# error TODO pypy:PyCode_HasFreeVars not implemented for your python version
+
+extern "C" PyObject* PyErr_GetExcTraceback() noexcept {
+    ExcInfo exc = getFrameExcInfo();
+    return exc->traceback;
+}
 #endif
-
-// TODO(Daetalus) add more stuff.
-
 
 #ifdef __cplusplus
 }
